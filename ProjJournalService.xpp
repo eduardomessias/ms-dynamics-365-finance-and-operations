@@ -1,0 +1,149 @@
+/// <summary>
+///     Eduardo Messias
+///		This service creates and maintain the project journal records
+/// </summary>
+class ProjJournalService
+{
+    HcmEmployment               employment;
+
+    ProjParameters              projParameters;
+    ProjCategory                projCategory;
+    ProjTable                   projTable;
+    ProjJournalName             projJournalName;
+
+    ProjJournalTable            projJournalTable;
+    ProjJournalTrans            projJournalTrans;
+    
+    ProjJournalTableData        projJournalTableData;
+    ProjJournalTransData        projJournalTransData;
+
+    ProjJournalStatic           projJournalStatic;
+    ProjJournalCheckPost        projJournalCheckPost;
+	
+	ProjJournalType				projJournalType;
+	HcmWorker					hcmWorker;
+
+    public void new()
+    {
+        
+    }
+
+    public void initParms(ProjJournalContract _contract)
+    {
+		projParameters      = ProjParameters::find();
+		
+		projCategory		= ProjCategory::find(_contract.parmProjCategoryId());
+		projJournalName		= ProjJournalName::find(_contract.parmJournalNameId());
+		projTable			= ProjTable::find(_contract.parmProjId());
+		
+		projJournalType		= _contract.parmProjJournalType();
+		hcmWorker				= HcmWorker::find(_contract.parmWorker());
+    }
+
+    public void processOperation(KCWHRPCreateProjJournalTableContract _contract)
+    {
+        this.initParms(_contract);
+
+        try
+        {
+            ttsbegin;
+
+            this.createProjJournal();
+
+            ttscommit;
+        }
+        catch
+        {
+            throw Exception::Error;
+        }
+    }
+	
+	void createProjJournal()
+	{
+		this.createJournalHeader();
+		this.createJournalTrans();
+		this.validateAndPostJournal();
+	}
+
+    void createJournalHeader()
+    {
+        projJournalTable.clear();
+		
+        projJournalTableData            = JournalTableData::newTable(projJournalTable);
+        projJournalStatic               = projJournalTableData.journalStatic();
+
+        projJournalTableData.initFromJournalName(projJournalName);
+
+        projJournalTable.JournalId      = projJournalTableData.nextJournalId();
+        projJournalTable.JournalType    = ProjJournalType::Hour;
+        projJournalTable.JournalNameId  = projJournalName.JournalNameId;
+
+        if (projJournalTable.validateWrite())
+        {
+            projJournalTable.insert();
+        }
+        else
+        {
+            throw Error("@ErrorLabel");
+        }
+    }
+
+    void createJournalTrans()
+    {
+        projJournalTrans.clear();
+        
+        projJournalTransData.initFromJournalTable();
+            
+        projJournalTrans.initValue();
+        projJournalTrans.initFromProjTable(projTable);
+		projJournalTrans.setTransDate();
+
+        projJournalTrans.ProjId         = projTable.ProjId;
+
+        projJournalTrans.LinePropertyId = projCategory.projLinePropertyId();
+        projJournalTrans.CategoryId     = projCategory.CategoryId;
+        projJournalTrans.TaxItemGroupId = projCategory.TaxItemGroupId;
+
+        // Resource field must be in the resource view
+        projJournalTrans.Resource       = (select firstonly ResourceView
+                                                where ResourceView.Worker == hcmWorker.RecId).RecId;
+
+        // Case the Resource field is empty, the process should not continue
+        if (projJournalTrans.Resource == 0)
+        {
+            throw error(strFmt("@ErrorLabel", hcmWorker.name())); // I.E.: Worker %1 is not a project resource
+        }
+
+        projJournalTrans.Worker         = hcmWorker.RecId;
+
+        if (projJournalTrans.Worker)
+        {
+            projJournalTrans.setHourPrices();
+            projJournalTrans.setPeriodDate();
+        }
+
+        projJournalTrans.DefaultDimension = projTable.DefaultDimension;
+
+        projJournalTransData.create();
+    }
+	
+    void validateAndPostJournal()
+    {
+        // Validates the journal created.
+        projJournalCheckPost    = ProjJournalCheckPost::newJournalCheckPost(true, true, JournalCheckPostType::Check, tableNum(ProjJournalTable), projJournalTable.JournalId);
+        projJournalCheckPost.run();
+
+        // Check if the journal has any errors
+        if (projJournalCheckPost.parmCheckJournalResult())
+        {
+            // Posts the journal
+            projJournalCheckPost    = ProjJournalCheckPost::newJournalCheckPost(true, true, JournalCheckPostType::Post, tableNum(ProjJournalTable), projJournalTable.JournalId);
+            projJournalCheckPost.run();
+        }
+        else
+        {
+            // If the journal has any error it should not be created and the process should not proceed.
+            throw Error("@ErrorLabel");
+        }
+    }
+}
