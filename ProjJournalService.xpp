@@ -20,8 +20,8 @@ class ProjJournalService
     ProjJournalStatic           projJournalStatic;
     ProjJournalCheckPost        projJournalCheckPost;
 	
-	ProjJournalType				projJournalType;
-	HcmWorker					hcmWorker;
+    ProjJournalType		projJournalType;
+    HcmWorker			hcmWorker;
 
     public void new()
     {
@@ -30,14 +30,14 @@ class ProjJournalService
 
     public void initParms(ProjJournalContract _contract)
     {
-		projParameters      = ProjParameters::find();
+        projParameters      = ProjParameters::find();
 		
-		projCategory		= ProjCategory::find(_contract.parmProjCategoryId());
-		projJournalName		= ProjJournalName::find(_contract.parmJournalNameId());
-		projTable			= ProjTable::find(_contract.parmProjId());
+	projCategory		= ProjCategory::find(_contract.parmProjCategoryId());
+	projJournalName		= ProjJournalName::find(_contract.parmJournalNameId());
+	projTable		= ProjTable::find(_contract.parmProjId());
 		
-		projJournalType		= _contract.parmProjJournalType();
-		hcmWorker				= HcmWorker::find(_contract.parmWorker());
+	projJournalType		= _contract.parmProjJournalType();
+	hcmWorker		= HcmWorker::find(_contract.parmWorker());
     }
 
     public void processOperation(KCWHRPCreateProjJournalTableContract _contract)
@@ -60,9 +60,9 @@ class ProjJournalService
 	
 	void createProjJournal()
 	{
-		this.createJournalHeader();
-		this.createJournalTrans();
-		this.validateAndPostJournal();
+	    this.createJournalHeader();
+	    this.createJournalTrans();
+	    this.validateAndPostJournal();
 	}
 
     void createJournalHeader()
@@ -96,7 +96,7 @@ class ProjJournalService
             
         projJournalTrans.initValue();
         projJournalTrans.initFromProjTable(projTable);
-		projJournalTrans.setTransDate();
+	projJournalTrans.setTransDate();
 
         projJournalTrans.ProjId         = projTable.ProjId;
 
