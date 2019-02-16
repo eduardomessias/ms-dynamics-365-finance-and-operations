@@ -1,11 +1,9 @@
 /// <summary>
-///     Eduardo Messias
-///		This service creates and maintain the project journal records
+///    Eduardo Messias
+///    This service creates and maintain the project journal records
 /// </summary>
 class ProjJournalService
 {
-    HcmEmployment               employment;
-
     ProjParameters              projParameters;
     ProjCategory                projCategory;
     ProjTable                   projTable;
@@ -104,7 +102,7 @@ class ProjJournalService
         projJournalTrans.CategoryId     = projCategory.CategoryId;
         projJournalTrans.TaxItemGroupId = projCategory.TaxItemGroupId;
 
-        // Resource field must be in the resource view
+        // Resource field must be in the resources view
         projJournalTrans.Resource       = (select firstonly ResourceView
                                                 where ResourceView.Worker == hcmWorker.RecId).RecId;
 
