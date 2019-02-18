@@ -25,6 +25,15 @@ class ProjJournalService
     {
         
     }
+    
+    static ProjJournalService construct(ProjJournalContract _contract)
+    {
+        ProjJournalService projJournalService = new ProjJournalService();
+	
+	projJournalService.initParms(_contract);
+	
+	return projJournalService;
+    }
 
     public void initParms(ProjJournalContract _contract)
     {
